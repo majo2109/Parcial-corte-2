@@ -2,19 +2,19 @@ from fastapi import FastAPI
 from routers import estudiantes, cursos, matriculas
 from db import create_db_and_tables
 
-
 app = FastAPI(
-    title="Sistema de Gestión Académica",
-    description="API para gestionar estudiantes, cursos y matrículas con SQLModel",
+    lifespan=create_db_and_tables,
+    title="universidad majo",
     version="1.0.0"
 )
-
-create_db_and_tables()
-app.include_router(estudiantes.router)
-app.include_router(cursos.router)
-app.include_router(matriculas.router)
+app.include_router(estudiantes.router, tags=["estudiantes"], prefix="/estudiantes")
+app.include_router(cursos.router, tags=["cursos"], prefix="/cursos")
+app.include_router(matriculas.router, tags=["matriculas"], prefix="/matriculas")
 
 @app.get("/")
-def read_root():
-    return {"message": "Bienvenido a la API Académica"}
+async def root():
+    return {"message": "Bienvenido al sistema académico"}
 
+@app.get("/saludo/{nombre}")
+async def saludo(nombre: str):
+    return {"message": f"Hola {nombre}, bienvenido a la universidad"}
