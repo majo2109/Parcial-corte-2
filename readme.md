@@ -35,14 +35,18 @@ Comportamiento en Cascada: Al eliminar un estudiante, todas sus matrículas asoc
 Sigue estos pasos para levantar la aplicación en tu entorno local.
 
 1. Prerrequisitos
+
 Python 3.9+
 
 Gestor de entornos virtuales recomendado (venv o conda).
 
 2. Instalación de Dependencias
 Crea y activa tu entorno virtual:
+
 python -m venv venv
+
 source venv/bin/activate  # En Linux/macOS
+
 .\venv\Scripts\activate   # En Windows
 
 
