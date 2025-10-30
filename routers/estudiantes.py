@@ -15,6 +15,19 @@ router = APIRouter(
 
 @router.post("/", response_model=EstudianteRead, status_code=status.HTTP_201_CREATED)
 def create_estudiante(*, session: SessionDep, estudiante_in: EstudianteCreate):
+    """
+    Crea un nuevo estudiante en la base de datos.
+
+    Args:
+        session: Dependencia de sesión de la base de datos.
+        estudiante_in: Datos del nuevo estudiante (nombre, email, semestre, cédula).
+
+    Raises:
+        HTTPException 409: Si la cédula o el email ya existen.
+
+    Returns:
+        EstudianteRead: El objeto estudiante creado.
+    """
     existing_estudiante = session.get(Estudiante, estudiante_in.cedula)
     if existing_estudiante:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Ya existe un estudiante con esa cédula.")
@@ -35,11 +48,19 @@ def create_estudiante(*, session: SessionDep, estudiante_in: EstudianteCreate):
 def read_estudiantes(
     *, 
     session: SessionDep, 
-    semestre: Optional[int] = Query(None),
-    offset: int = 0, 
-    limit: int = Query(default=100, le=100)
+    semestre: Optional[int] = Query(None)
 ):
-    statement = select(Estudiante).offset(offset).limit(limit)
+    """
+    Obtiene una lista de todos los estudiantes.
+
+    Args:
+        session: Dependencia de sesión de la base de datos.
+        semestre: Parámetro opcional para filtrar estudiantes por semestre.
+
+    Returns:
+        List[EstudianteRead]: Lista de objetos estudiante.
+    """
+    statement = select(Estudiante)
     if semestre is not None:
         statement = statement.where(Estudiante.semestre == semestre)
         
@@ -48,6 +69,19 @@ def read_estudiantes(
 
 @router.get("/{cedula}/", response_model=EstudianteReadWithCursos)
 def read_estudiante(*, session: SessionDep, cedula: str):
+    """
+    Obtiene un estudiante por su cédula, incluyendo la lista de cursos matriculados.
+
+    Args:
+        session: Dependencia de sesión de la base de datos.
+        cedula: Cédula del estudiante a buscar.
+
+    Raises:
+        HTTPException 404: Si el estudiante no es encontrado.
+
+    Returns:
+        EstudianteReadWithCursos: El objeto estudiante con sus cursos.
+    """
     estudiante = session.get(Estudiante, cedula)
     if not estudiante:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Estudiante no encontrado")
@@ -60,6 +94,21 @@ def read_estudiante(*, session: SessionDep, cedula: str):
 
 @router.patch("/{cedula}/", response_model=EstudianteRead)
 def update_estudiante(*, session: SessionDep, cedula: str, estudiante_in: EstudianteUpdate):
+    """
+    Actualiza parcialmente los datos de un estudiante por su cédula.
+
+    Args:
+        session: Dependencia de sesión de la base de datos.
+        cedula: Cédula del estudiante a actualizar.
+        estudiante_in: Datos a actualizar (nombre, email, semestre).
+
+    Raises:
+        HTTPException 404: Si el estudiante no es encontrado.
+        HTTPException 409: Si el nuevo email ya está registrado.
+
+    Returns:
+        EstudianteRead: El objeto estudiante actualizado.
+    """
     db_estudiante = session.get(Estudiante, cedula)
     if not db_estudiante:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Estudiante no encontrado")
@@ -80,6 +129,17 @@ def update_estudiante(*, session: SessionDep, cedula: str, estudiante_in: Estudi
 
 @router.delete("/{cedula}/", status_code=status.HTTP_204_NO_CONTENT)
 def delete_estudiante(*, session: SessionDep, cedula: str):
+    """
+    Elimina un estudiante por su cédula.
+    La matrícula asociada también será eliminada (comportamiento en cascada).
+
+    Args:
+        session: Dependencia de sesión de la base de datos.
+        cedula: Cédula del estudiante a eliminar.
+
+    Raises:
+        HTTPException 404: Si el estudiante no es encontrado.
+    """
     estudiante = session.get(Estudiante, cedula)
     if not estudiante:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Estudiante no encontrado")
@@ -90,6 +150,19 @@ def delete_estudiante(*, session: SessionDep, cedula: str):
 
 @router.get("/{cedula}/cursos/", response_model=List[CursoRead])
 def get_cursos_de_estudiante(*, session: SessionDep, cedula: str):
+    """
+    Obtiene la lista de cursos en los que un estudiante está matriculado.
+
+    Args:
+        session: Dependencia de sesión de la base de datos.
+        cedula: Cédula del estudiante.
+
+    Raises:
+        HTTPException 404: Si el estudiante no es encontrado.
+
+    Returns:
+        List[CursoRead]: Lista de cursos.
+    """
     estudiante = session.get(Estudiante, cedula)
     if not estudiante:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Estudiante no encontrado")
