@@ -4,25 +4,6 @@ Estudiante de ingenieria de sistemas de la universidad Catolica de Colombia
 
 🎓 Sistema de Gestión de Universidad (API RESTful)
 Este proyecto implementa una API REST para la gestión de Estudiantes y Cursos con una relación de muchos a muchos (N:M) a través de la entidad Matrícula.
-✨ Características Principales
-Tecnología: Desarrollado con FastAPI (Python) y SQLModel para la capa de ORM.
-
-Base de Datos: SQLite (universidad.db) para almacenamiento local y ligero.
-
-CRUD Completo: Implementación de las operaciones Create, Read (Listar y por ID), Update (Patch) y Delete para Estudiantes y Cursos.
-
-Consultas Relacionales: Permite obtener un estudiante con todos sus cursos matriculados y un curso con todos sus estudiantes matriculados.
-
-Filtros Avanzados:
-
-Listar estudiantes filtrando por semestre.
-
-Listar cursos filtrando por créditos o código.
-
-¡Claro! Un README.md bien estructurado es esencial para la rúbrica. Aquí tienes una plantilla descriptiva que cubre todos los requisitos del proyecto (CRUD, lógica de negocio y filtros) y te guía para cumplir los criterios de entrega:
-
-🎓 Sistema de Gestión de Universidad (API RESTful)
-Este proyecto implementa una API REST para la gestión de Estudiantes y Cursos con una relación de muchos a muchos (N:M) a través de la entidad Matrícula.
 
 ✨ Características Principales
 Tecnología: Desarrollado con FastAPI (Python) y SQLModel para la capa de ORM.
