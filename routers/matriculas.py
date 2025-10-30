@@ -1,63 +1,65 @@
-from fastapi import APIRouter, Depends, HTTPException, status
-from sqlmodel import Session
-from db import get_session
-from models import Matricula, MatriculaCreate, MatriculaRead, CursoRead, EstudianteRead
-import crud
-from typing import List
+from fastapi import APIRouter, HTTPException, status
+from sqlmodel import select, and_, Session
 
-router = APIRouter(prefix="/matriculas", tags=["Matriculas"])
+from database import SessionDep
+from models import Matricula, MatriculaBase, Estudiante, Curso
 
-@router.post("/", response_model=MatriculaRead, status_code=status.HTTP_201_CREATED) 
-def crear_matricula(matricula: MatriculaCreate, session: Session = Depends(get_session)):
-    nueva_matricula = crud.crear_matricula(session, matricula)
+router = APIRouter(
+    prefix="/matriculas",
+    tags=["Matrículas"]
+)
+
+@router.post("/", status_code=status.HTTP_201_CREATED)
+def matricular_estudiante(
+    *, 
+    session: SessionDep, 
+    matricula_in: MatriculaBase
+):
     
+    estudiante = session.get(Estudiante, matricula_in.estudiante_cedula)
+    curso = session.get(Curso, matricula_in.curso_codigo)
     
-    if isinstance(nueva_matricula, dict) and "error" in nueva_matricula:
-        #
-        if "Conflicto de horario" in nueva_matricula["error"]:
-             raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=nueva_matricula["error"])
-        else: 
-             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=nueva_matricula["error"])
-             
-    return nueva_matricula
-
-@router.get("/", response_model=List[MatriculaRead])
-def listar_matriculas(session: Session = Depends(get_session)):
-    return crud.listar_matriculas(session)
-
-
-@router.get("/estudiante/{estudiante_id}/cursos", response_model=List[CursoRead])
-def cursos_de_un_estudiante(estudiante_id: int, session: Session = Depends(get_session)):
-    cursos = crud.listar_cursos_de_estudiante(session, estudiante_id)
-    if not cursos:
+    if not estudiante:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Estudiante no encontrado.")
+    if not curso:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Curso no encontrado.")
         
-        estudiante = crud.obtener_estudiante(session, estudiante_id)
-        if not estudiante:
-            raise HTTPException(status_code=404, detail="Estudiante no encontrado")
-    return cursos
+    statement_horario = select(Curso).join(Matricula).where(
+        and_(
+            Matricula.estudiante_cedula == matricula_in.estudiante_cedula,
+            Curso.horario == curso.horario, 
+            Curso.codigo != matricula_in.curso_codigo
+        )
+    )
+    curso_conflicto = session.exec(statement_horario).first()
 
+    if curso_conflicto:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT, 
+            detail=f"Lógica de negocio: El estudiante ya está matriculado en el curso '{curso_conflicto.nombre}' con el mismo horario: {curso_conflicto.horario}."
+        )
 
-@router.get("/curso/{curso_id}/estudiantes", response_model=List[EstudianteRead])
-def estudiantes_de_un_curso(curso_id: int, session: Session = Depends(get_session)):
-    estudiantes = crud.listar_estudiantes_de_curso(session, curso_id)
-    if not estudiantes:
-        
-        curso = crud.obtener_curso(session, curso_id)
-        if not curso:
-            raise HTTPException(status_code=404, detail="Curso no encontrado")
-    return estudiantes
+    existing_matricula = session.get(Matricula, (matricula_in.estudiante_cedula, matricula_in.curso_codigo))
+    if existing_matricula:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="El estudiante ya está matriculado en este curso.")
 
-@router.get("/{matricula_id}", response_model=MatriculaRead)
-def obtener_matricula(matricula_id: int, session: Session = Depends(get_session)):
-    matricula = crud.obtener_matricula(session, matricula_id)
+    matricula = Matricula.model_validate(matricula_in)
+    session.add(matricula)
+    session.commit()
+    session.refresh(matricula)
+    return {"message": "Estudiante matriculado exitosamente", "matricula": matricula}
+
+@router.delete("/", status_code=status.HTTP_204_NO_CONTENT)
+def desmatricular_estudiante(
+    *, 
+    session: SessionDep, 
+    matricula_in: MatriculaBase
+):
+    matricula = session.get(Matricula, (matricula_in.estudiante_cedula, matricula_in.curso_codigo))
+    
     if not matricula:
-        raise HTTPException(status_code=404, detail="Matricula no encontrada")
-    return matricula
-
-
-@router.delete("/{matricula_id}") 
-def eliminar_matricula(matricula_id: int, session: Session = Depends(get_session)):
-    ok = crud.eliminar_matricula(session, matricula_id)
-    if not ok:
-        raise HTTPException(status_code=404, detail="Matricula no encontrada")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Matrícula no encontrada.")
+        
+    session.delete(matricula)
+    session.commit()
     return {"ok": True}

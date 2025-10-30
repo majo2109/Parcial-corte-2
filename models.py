@@ -1,80 +1,65 @@
-from typing import Optional, List
-from sqlmodel import SQLModel, Field, Relationship
-
-class EstudianteBase(SQLModel):
-    nombre: str
-    cedula: str = Field(index=True, unique=True) 
-    email: Optional[str] = None 
-    semestre: int
-    
-class CursoBase(SQLModel):
-    nombre: str
-    codigo: str = Field(index=True, unique=True) 
-    creditos: int
-    horario: str 
+from typing import List, Optional
+from sqlmodel import Field, SQLModel, Relationship
+from sqlalchemy.schema import PrimaryKeyConstraint
 
 class MatriculaBase(SQLModel):
-    estudiante_id: int
-    curso_id: int
-
-class Estudiante(EstudianteBase, table=True):
-    id: Optional[int] = Field(default=None, primary_key=True)
-    matriculas: List["Matricula"] = Relationship(
-        back_populates="estudiante",
-        sa_relationship_args={"cascade": "all, delete-orphan"}
-    )
-
-class Curso(CursoBase, table=True):
-    id: Optional[int] = Field(default=None, primary_key=True)
-    matriculas: List["Matricula"] = Relationship(
-        back_populates="curso",
-        sa_relationship_args={"cascade": "all, delete-orphan"}
-    )
+    estudiante_cedula: str = Field(foreign_key="estudiante.cedula", primary_key=True)
+    curso_codigo: str = Field(foreign_key="curso.codigo", primary_key=True)
 
 class Matricula(MatriculaBase, table=True):
-    id: Optional[int] = Field(default=None, primary_key=True)
-    estudiante_id: int = Field(foreign_key="estudiante.id")
-    curso_id: int = Field(foreign_key="curso.id")
+    __tablename__ = "matricula"
+    __table_args__ = (
+        PrimaryKeyConstraint("estudiante_cedula", "curso_codigo"),
+    )
 
-    estudiante: Optional[Estudiante] = Relationship(back_populates="matriculas")
-    curso: Optional[Curso] = Relationship(back_populates="matriculas")
-
-class EstudianteReadWithCursos(EstudianteBase):
-    id: int
-    cursos: List["CursoRead"] 
+    estudiante: "Estudiante" = Relationship(back_populates="matriculas")
+    curso: "Curso" = Relationship(back_populates="matriculas")
     
+class EstudianteBase(SQLModel):
+    nombre: str = Field(index=True, min_length=2, max_length=100)
+    email: str = Field(unique=True, index=True, regex=r"[^@]+@[^@]+\.[^@]+")
+    semestre: int = Field(ge=1, le=12)
 
-class CursoReadWithEstudiantes(CursoBase):
-    id: int
-    estudiantes: List["EstudianteRead"] 
+class CursoBase(SQLModel):
+    nombre: str = Field(min_length=5, max_length=150)
+    creditos: int = Field(ge=1, le=10)
+    horario: str 
 
+class Estudiante(EstudianteBase, table=True):
+    cedula: str = Field(primary_key=True, index=True, unique=True, min_length=5, max_length=20)
+    matriculas: List[Matricula] = Relationship(back_populates="estudiante", sa_relationship_kwargs={"cascade": "all, delete-orphan"})
+
+class EstudianteRead(EstudianteBase):
+    cedula: str
+    
+class EstudianteReadWithCursos(EstudianteRead):
+    cursos: List["CursoRead"] = [] 
+
+class Curso(CursoBase, table=True):
+    codigo: str = Field(primary_key=True, index=True, unique=True, min_length=3, max_length=10)
+    matriculas: List[Matricula] = Relationship(back_populates="curso")
+    
+class CursoRead(CursoBase):
+    codigo: str
+    
+class CursoReadWithEstudiantes(CursoRead):
+    estudiantes: List[EstudianteRead] = []
+    
 class EstudianteCreate(EstudianteBase):
-    pass
+    cedula: str = Field(min_length=5, max_length=20)
 
-class EstudianteUpdate(SQLModel):
+class EstudianteUpdate(EstudianteBase):
     nombre: Optional[str] = None
     email: Optional[str] = None
     semestre: Optional[int] = None
     
-class EstudianteRead(EstudianteBase):
-    id: int
-
 class CursoCreate(CursoBase):
-    pass
-
-class CursoUpdate(SQLModel):
+    codigo: str = Field(min_length=3, max_length=10)
+    
+class CursoUpdate(CursoBase):
     nombre: Optional[str] = None
     creditos: Optional[int] = None
     horario: Optional[str] = None
-
-class CursoRead(CursoBase):
-    id: int
-
-class MatriculaCreate(MatriculaBase):
-    pass
-
-class MatriculaRead(MatriculaBase):
-    id: int
-
+    
 EstudianteReadWithCursos.model_rebuild()
 CursoReadWithEstudiantes.model_rebuild()

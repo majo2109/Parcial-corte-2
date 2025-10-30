@@ -1,20 +1,22 @@
 from fastapi import FastAPI
-from routers import estudiantes, cursos, matriculas
-from db import create_db_and_tables
+from database import create_db_and_tables
+
+from routers import estudiantes, cursos, matriculas 
 
 app = FastAPI(
-    lifespan=create_db_and_tables,
-    title="universidad majo",
-    version="1.0.0"
+    title="Sistema de Gestión de Universidad - Modular", 
+    version="1.0.0",
+    docs_url="/docs" 
 )
-app.include_router(estudiantes.router, tags=["estudiantes"], prefix="/estudiantes")
-app.include_router(cursos.router, tags=["cursos"], prefix="/cursos")
-app.include_router(matriculas.router, tags=["matriculas"], prefix="/matriculas")
+
+@app.on_event("startup")
+def on_startup():
+    create_db_and_tables()
+
+app.include_router(estudiantes.router)
+app.include_router(cursos.router)
+app.include_router(matriculas.router)
 
 @app.get("/")
-async def root():
-    return {"message": "Bienvenido al sistema académico"}
-
-@app.get("/saludo/{nombre}")
-async def saludo(nombre: str):
-    return {"message": f"Hola {nombre}, bienvenido a la universidad"}
+def read_root():
+    return {"message": "Sistema de Gestión de Universidad operativo. Ve a /docs para la documentación."}
