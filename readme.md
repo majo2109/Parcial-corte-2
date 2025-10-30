@@ -1,4 +1,6 @@
-¡Claro! Un README.md bien estructurado es esencial para la rúbrica. Aquí tienes una plantilla descriptiva que cubre todos los requisitos del proyecto (CRUD, lógica de negocio y filtros) y te guía para cumplir los criterios de entrega:
+Este trabajo es creado por Maria Jose Rincón 
+contacto: majorincon2109@gmail.com
+Estudiante de ingenieria de sistemas de la universidad Catolica de Colombia 
 
 🎓 Sistema de Gestión de Universidad (API RESTful)
 Este proyecto implementa una API REST para la gestión de Estudiantes y Cursos con una relación de muchos a muchos (N:M) a través de la entidad Matrícula.
